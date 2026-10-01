@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>통합 시스템 프로세스 전개도</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:      #f5f6f8;
+  --surface: #ffffff;
+  --surface2: #f9fafb;
+  --border:  #e4e7ec;
+  --border2: #d0d5dd;
+  --text:    #101828;
+  --text2:   #475467;
+  --text3:   #98a2b3;
+
+  --ai:         #6c5ce7;
+  --ai-light:   #f0eeff;
+  --ai-border:  #c4b8f9;
+
+  --erp:        #059669;
+  --erp-light:  #ecfdf5;
+  --erp-border: #6ee7b7;
+
+  --jj:         #2563eb;
+  --jj-light:   #eff6ff;
+  --jj-border:  #93c5fd;
+
+  --fb:         #ea580c;
+  --fb-light:   #fff7ed;
+  --fb-border:  #fdba74;
+
+  --op:         #7c3aed;
+  --sup:        #059669;
+  --buy:        #dc6803;
+  --set:        #b45309;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; background: var(--bg); color: var(--text); overflow: hidden; }
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ─ 헤더 ─ */
+.header {
+  flex-shrink: 0; display: flex; align-items: center; gap: 14px;
+  padding: 0 20px; height: 52px;
+  background: var(--surface); border-bottom: 1px solid var(--border); z-index: 20;
+}
+.logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, var(--ai), var(--jj)); flex-shrink: 0; }
+.header-title { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.hdiv { width: 1px; height: 18px; background: var(--border); }
+.tabs { display: flex; gap: 2px; }
+.tab { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; font-size: 12px; font-weight: 500; color: var(--text3); cursor: pointer; font-family: inherit; transition: .12s; white-space: nowrap; }
+.tab:hover { background: var(--bg); color: var(--text2); }
+.tab.on { background: var(--bg); color: var(--text); font-weight: 600; }
+.legend { display: flex; gap: 12px; align-items: center; margin-left: auto; flex-shrink: 0; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); white-space: nowrap; }
+.lc { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* ─ 바디 ─ */
+.body { display: flex; flex: 1; min-height: 0; }
+.canvas { flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; padding: 16px 18px 32px; }
+
+/* ─ 우측 하단 팝업 ─ */
+.popup {
+  position: fixed;
+  top: auto;
+  left: auto;
+  bottom: 24px;
+  right: 24px;
+  width: 330px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.18),
+    0 6px 20px rgba(0,0,0,.10),
+    0 0 0 1px rgba(0,0,0,.04);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+  pointer-events: none;
+  transition: opacity .22s ease, transform .22s ease;
+}
+.popup.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.popup.dragging {
+  transition: none;
+  transform: none;
+  opacity: 1;
+  user-select: none;
+  box-shadow:
+    0 28px 80px rgba(0,0,0,.22),
+    0 8px 28px rgba(0,0,0,.14),
+    0 0 0 1px rgba(0,0,0,.06);
+}
+
+/* 헤더 — 드래그 핸들 + 시스템 컬러 */
+.popup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 14px 13px;
+  gap: 10px;
+  cursor: grab;
+}
+.popup-header:active { cursor: grabbing; }
+.popup-header-left { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+
+/* 드래그 힌트 아이콘 */
+.drag-hint {
+  display: flex; gap: 2px; align-items: center;
+  opacity: .45; margin-bottom: 2px;
+}
+.drag-hint span {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: rgba(255,255,255,.9);
+  display: block;
+}
+
+.sp-sys {
+  display: inline-flex; align-items: center;
+  font-size: 9px; font-weight: 800;
+  padding: 2px 7px; border-radius: 3px;
+  letter-spacing: .07em; text-transform: uppercase;
+  width: fit-content;
+}
+.sp-title {
+  font-size: 13.5px; font-weight: 700; line-height: 1.3;
+}
+.popup-close {
+  width: 26px; height: 26px; border-radius: 6px; border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; transition: .12s;
+  font-family: inherit; margin-top: 1px;
+}
+
+/* 바디 */
+.popup-body {
+  padding: 14px 14px 14px;
+  display: flex; flex-direction: column; gap: 11px;
+  max-height: 340px; overflow-y: auto;
+  background: var(--surface);
+}
+.sp-desc { font-size: 11.5px; color: var(--text2); line-height: 1.78; }
+.sp-hr { border: none; border-top: 1px solid var(--border); }
+.sp-lbl {
+  font-size: 9px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--text3); margin-bottom: 5px;
+}
+.sp-flow {
+  font-size: 10.5px; font-family: 'JetBrains Mono', monospace;
+  border-radius: 6px; padding: 9px 11px; line-height: 1.9;
+}
+.sp-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.sp-tag {
+  font-size: 10px; padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--border2); color: var(--text2);
+  background: var(--surface2);
+}
+
+/* ─ 뷰 ─ */
+.view { display: none; }
+.view.on { display: block; }
+
+/* ─ 섹션 ─ */
+.sec { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.sec-head { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.sec-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sec-phase { font-size: 9px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text3); letter-spacing: .05em; }
+.sec-title { font-size: 11px; font-weight: 700; color: var(--text2); }
+.sec-note { margin-left: auto; font-size: 10px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 2px 7px; white-space: nowrap; }
+.sec-body { padding: 11px 14px; }
+
+/* ─ 카드 그리드 ─ */
+.row { display: grid; gap: 8px; margin-bottom: 8px; }
+.row:last-child { margin-bottom: 0; }
+.row-6 { grid-template-columns: repeat(6, 1fr); }
+.row-4 { grid-template-columns: repeat(4, 1fr); }
+.row-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ─ 카드 ─ */
+.card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px 9px; cursor: pointer; background: var(--surface); transition: box-shadow .14s, border-color .14s, transform .12s; position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; }
+.card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.07); transform: translateY(-1px); }
+.card.active { box-shadow: 0 0 0 2px var(--card-accent, #6c5ce7); }
+
+.card-step { font-size: 9px; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text3); margin-bottom: 4px; }
+.card-title { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.card-sub { font-size: 10px; color: var(--text2); margin-top: 3px; line-height: 1.4; }
+.badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-top: 6px; }
+
+/* 카드 색상 테마 */
+.c-ai  .card::before { background: var(--ai); }
+.c-ai  .card:hover   { border-color: var(--ai-border); }
+.c-ai  .card.active  { --card-accent: var(--ai); border-color: var(--ai-border); background: var(--ai-light); }
+
+.c-erp .card::before { background: var(--erp); }
+.c-erp .card:hover   { border-color: var(--erp-border); }
+.c-erp .card.active  { --card-accent: var(--erp); border-color: var(--erp-border); background: var(--erp-light); }
+
+.c-jj  .card::before { background: var(--jj); }
+.c-jj  .card:hover   { border-color: var(--jj-border); }
+.c-jj  .card.active  { --card-accent: var(--jj); border-color: var(--jj-border); background: var(--jj-light); }
+
+.c-fb  .card::before { background: var(--fb); }
+.c-fb  .card:hover   { border-color: var(--fb-border); }
+.c-fb  .card.active  { --card-accent: var(--fb); border-color: var(--fb-border); background: var(--fb-light); }
+
+.c-link .card { border-style: dashed; }
+.c-link .card::before { background: var(--border2); }
+.c-link .card:hover   { border-color: #BA7517; }
+.c-link .card.active  { --card-accent: #BA7517; border-color: #BA7517; background: #fffbeb; }
+
+/* 배지 */
+.b-ai  { background: var(--ai-light);  color: var(--ai);  border: 1px solid var(--ai-border); }
+.b-erp { background: var(--erp-light); color: var(--erp); border: 1px solid var(--erp-border); }
+.b-jj  { background: var(--jj-light);  color: var(--jj);  border: 1px solid var(--jj-border); }
+.b-fb  { background: var(--fb-light);  color: var(--fb);  border: 1px solid var(--fb-border); }
+.b-op  { background: #f5f3ff; color: var(--op); border: 1px solid #c4b5fd; }
+.b-sup { background: var(--erp-light); color: var(--sup); border: 1px solid var(--erp-border); }
+.b-buy { background: #fff7ed; color: var(--buy); border: 1px solid #fdba74; }
+.b-set { background: #fffbeb; color: var(--set); border: 1px solid #fde68a; }
+.b-all { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+.b-lnk { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+/* 플로우 화살표 */
+.f-arr { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 4px 0; color: var(--text3); font-size: 12px; }
+.f-arr-lbl { font-size: 9px; color: var(--text3); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-family: 'JetBrains Mono', monospace; }
+
+/* 피드백 배너 */
+.fb-banner { display: flex; align-items: center; gap: 8px; background: var(--fb-light); border: 1px solid var(--fb-border); border-radius: 7px; padding: 8px 14px; margin-top: 8px; font-size: 11px; color: var(--fb); }
+
+/* ══ SWIMLANE ══ */
+.swim-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+.swim-header { display: flex; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.swim-header-label { width: 78px; flex-shrink: 0; border-right: 1px solid var(--border); padding: 6px; text-align: center; font-size: 9px; font-weight: 700; color: var(--text3); letter-spacing: .05em; }
+.swim-header-phases { flex: 1; display: flex; }
+.swim-phase-hd { padding: 6px 10px; font-size: 9px; font-weight: 700; color: var(--jj); letter-spacing: .05em; text-transform: uppercase; border-right: 1px solid var(--border); }
+.swim-phase-hd:last-child { border-right: none; }
+
+.swim-row { display: flex; border-bottom: 1px solid var(--border); }
+.swim-row:last-child { border-bottom: none; }
+.swim-label { width: 78px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 10px 4px; border-right: 1px solid var(--border); background: var(--surface2); text-align: center; }
+.swim-label .sl-icon { font-size: 14px; }
+.swim-label .sl-name { font-size: 9px; font-weight: 700; letter-spacing: .03em; }
+.swim-label .sl-sub  { font-size: 8px; color: var(--text3); }
+.swim-body { flex: 1; display: flex; align-items: center; flex-wrap: nowrap; gap: 5px; padding: 10px 12px; overflow: visible; }
+
+.sw { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 7px; padding: 8px 9px; cursor: pointer; background: var(--surface); transition: .13s; position: relative; overflow: hidden; }
+.sw::before { content: ''; position: absolute; top: 0; left: 0; width: 2.5px; height: 100%; }
+.sw:hover { box-shadow: 0 1px 6px rgba(0,0,0,.07); border-color: var(--border2); transform: translateY(-1px); }
+.sw.active { box-shadow: 0 0 0 1.5px var(--sw-ac, #2563eb); }
+.sw-step { font-size: 8px; color: var(--text3); font-family: 'JetBrains Mono', monospace; margin-bottom: 2px; }
+.sw-title { font-size: 10px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.sw-sub   { font-size: 9px; color: var(--text2); margin-top: 2px; line-height: 1.3; }
+.sw-badge { display: inline-block; font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-top: 4px; }
+.sw-gap   { flex: 1; min-width: 8px; }
+
+/* ══ 연동 뷰 ══ */
+.conn-row { display: grid; grid-template-columns: 1fr 48px 1fr; gap: 0; align-items: center; margin-bottom: 10px; }
+.conn-box { border: 1px solid var(--border); border-radius: 9px; padding: 14px 16px; background: var(--surface); }
+.conn-box h5 { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+.conn-box ul { list-style: none; }
+.conn-box ul li { font-size: 11px; color: var(--text2); padding: 4px 0; border-bottom: 1px solid var(--border); }
+.conn-box ul li:last-child { border-bottom: none; }
+.conn-box ul li b { color: var(--text); }
+.conn-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 18px; color: var(--text3); }
+.conn-mid small { font-size: 9px; color: var(--text3); text-align: center; white-space: nowrap; }
+.obj-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.obj-card { border: 1px solid var(--jj-border); border-radius: 8px; padding: 12px; background: var(--jj-light); cursor: pointer; transition: .13s; }
+.obj-card:hover { box-shadow: 0 2px 8px rgba(37,99,235,.1); }
+.obj-card.active { box-shadow: 0 0 0 2px var(--jj); }
+.obj-card h5 { font-size: 11px; font-weight: 700; color: var(--jj); margin-bottom: 5px; }
+.obj-card p  { font-size: 10px; color: var(--text2); line-height: 1.55; }
+.section-lbl { font-size: 10px; font-weight: 700; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; margin: 14px 0 8px; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ─ AI / 모니터링 태그 ─ */
+.card-tags { position: absolute; top: 7px; right: 8px; display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
+.tag-ai {
+  font-size: 8px; font-weight: 800; letter-spacing: .06em;
+  padding: 2px 5px; border-radius: 3px;
+  background: var(--ai); color: #fff;
+  line-height: 1.2; white-space: nowrap;
+}
+.tag-mon {
+  font-size: 8px; font-weight: 800; letter-spacing: .04em;
+  padding: 2px 5px; border-radius: 3px;
+  background: #0ea5e9; color: #fff;
+  line-height: 1.2; white-space: nowrap;
+}
+/* sw(swimlane) 카드용 */
+.sw-tags { position: absolute; top: 5px; right: 6px; display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
+.sw .sw-tags .tag-ai, .sw .sw-tags .tag-mon { font-size: 7px; padding: 1px 4px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- 헤더 -->
+<div class="header">
+  <div class="logo"></div>
+  <div class="header-title">통합 시스템 프로세스 전개도</div>
+  <div class="hdiv"></div>
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('full',this)">전체 통합 흐름</button>
+    <button class="tab" onclick="showTab('jajae',this)">자재톡 내부 22단계</button>
+    <button class="tab" onclick="showTab('conn',this)">데이터 연동 구조</button>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="lc" style="background:var(--ai)"></div>견적 AI</div>
+    <div class="leg"><div class="lc" style="background:var(--erp)"></div>ERP</div>
+    <div class="leg"><div class="lc" style="background:var(--jj)"></div>자재톡</div>
+    <div class="leg"><div class="lc" style="background:var(--fb)"></div>피드백</div>
+  </div>
+</div>
+
+<div class="body">
+
+<!-- ══════════ VIEW 1: 전체 통합 흐름 ══════════ -->
+<div class="view on canvas" id="v-full">
+
+  <!-- PHASE 01 -->
+  <div class="sec c-ai">
+    <div class="sec-head">
+      <div class="sec-dot" style="background:var(--ai)"></div>
+      <div class="sec-phase">PHASE 01</div>
+      <div class="sec-title">수주 전 — 견적 단계</div>
+      <div style="margin-left:auto;font-size:10px;color:var(--text3)">견적 AI + 자재톡 연동</div>
+    </div>
+    <div class="sec-body">
+      <div class="row row-6">
+        <div class="card" onclick="pick(this,'e1')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">01</div><div class="card-title">고객 견적 요청 접수</div><div class="card-sub">도면·시방서·RFQ 업로드</div><span class="badge b-ai">견적 AI</span></div>
+        <div class="card" onclick="pick(this,'e2')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">02 – 03</div><div class="card-title">BOM / MTO 추출</div><div class="card-sub">공종별 물량·품목코드 매핑</div><span class="badge b-ai">견적 AI</span></div>
+        <div class="card c-link" onclick="pick(this,'e3')"><div class="card-step">연동 ↕</div><div class="card-title">자재톡 단가 요청</div><div class="card-sub">품목코드·수량·납기 → POR</div><span class="badge b-lnk">AI → 자재톡</span></div>
+        <div class="card c-link" onclick="pick(this,'e4')"><div class="card-step">연동 ↕</div><div class="card-title">자재톡 단가 수신</div><div class="card-sub">시장단가·3안·공급사·납기</div><span class="badge b-lnk">자재톡 → AI</span></div>
+        <div class="card" onclick="pick(this,'e5')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">04 – 06</div><div class="card-title">원가 산출 → 견적서</div><div class="card-sub">자재비·노무비·외주비·장비비</div><span class="badge b-ai">견적 AI</span></div>
+        <div class="card" onclick="pick(this,'e6')"><div class="card-step">07 – 09</div><div class="card-title">검토 → 제출 → 수주</div><div class="card-sub">담당자 검토 · 수주 확정</div><span class="badge b-all">영업부</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="f-arr">↓ <span class="f-arr-lbl">수주 확정 · 견적 AI 데이터 전체 → ERP 자동 이관</span></div>
+
+  <!-- PHASE 02 -->
+  <div class="sec c-erp">
+    <div class="sec-head">
+      <div class="sec-dot" style="background:var(--erp)"></div>
+      <div class="sec-phase">PHASE 02</div>
+      <div class="sec-title">수주 직후 — ERP 등록·공유</div>
+      <div class="sec-note">※ 목표: 수주통보서 발행 시 실행예산 함께 공유 | 미확정 시 작성상태·확정예정일 병기</div>
+    </div>
+    <div class="sec-body">
+      <div class="row row-4">
+        <div class="card" onclick="pick(this,'r1')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">10 – 11</div><div class="card-title">ERP 등록 · 수주통보서</div><div class="card-sub">프로젝트 코드 생성 · 투찰 정보(견적금액·경쟁현황·낙찰조건) 함께 공유 · 실행예산 확정 or 작성상태+확정예정일 병기</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'r2')"><div class="card-step">12</div><div class="card-title">프로젝트 유형 분류</div><div class="card-sub">EPC · 제작납품 · 제작시공 · 시공단독</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'r3')"><div class="card-step">13 – 15</div><div class="card-title">부서 동시 공유 · 사전 검토</div><div class="card-sub">기술·생산·품질·안전·공사·사업관리 — 투찰 정보 및 실행예산(안) 함께 공유</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'r4')"><div class="card-step">16</div><div class="card-title">Kick-off Meeting</div><div class="card-sub">실행계획·실행예산 최종 확정·역할분담 — 수주통보서 시점 미확정분 이 단계에서 최종 확정</div><span class="badge b-all">전 부서</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="f-arr">↓ <span class="f-arr-lbl">실행예산 확정 → ERP 구매요청 → 자재톡 POR 전달</span></div>
+
+  <!-- PHASE 03 -->
+  <div class="sec c-jj">
+    <div class="sec-head">
+      <div class="sec-dot" style="background:var(--jj)"></div>
+      <div class="sec-phase">PHASE 03</div>
+      <div class="sec-title">실행 — 자재톡 자사 구매 플랫폼 (핵심 루프)</div>
+      <div style="margin-left:auto;font-size:10px;color:var(--text3)">POR → RFQ → 3안 → 내부결재 → PO → 납품 → 정산</div>
+    </div>
+    <div class="sec-body">
+      <div class="row row-6">
+        <div class="card" onclick="pick(this,'j1')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">J-01</div><div class="card-title">POR 접수</div><div class="card-sub">ERP 구매요청 → 품목·수량·납품지</div><span class="badge b-jj">자재톡</span></div>
+        <div class="card" onclick="pick(this,'j2')"><div class="card-step">J-02</div><div class="card-title">운영자 POR 검토</div><div class="card-sub">품목·규격·단위 표준화</div><span class="badge b-op">운영자</span></div>
+        <div class="card" onclick="pick(this,'j3')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">J-03</div><div class="card-title">품목 분류·AI 재학습</div><div class="card-sub">대분류 확정·마진율 자동 연결</div><span class="badge b-op">운영자</span></div>
+        <div class="card" onclick="pick(this,'j4')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">J-04</div><div class="card-title">공급사 매핑</div><div class="card-sub">자동매핑·SD 포함·복수 지정</div><span class="badge b-op">운영자</span></div>
+        <div class="card" onclick="pick(this,'j5')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">J-05</div><div class="card-title">차수 등록·RFQ 발행</div><div class="card-sub">11:00/15:00 배치·자동 발송</div><span class="badge b-jj">플랫폼</span></div>
+        <div class="card" onclick="pick(this,'j6')"><div class="card-step">J-06</div><div class="card-title">공급사 견적 제출</div><div class="card-sub">단가·납기 제출 (경쟁 견적)</div><span class="badge b-sup">공급사</span></div>
+      </div>
+      <div class="row row-6">
+        <div class="card" onclick="pick(this,'j7')"><div class="card-step">J-07</div><div class="card-title">견적 마감 (자동)</div><div class="card-sub">전일 23:59 자동 마감</div><span class="badge b-jj">플랫폼</span></div>
+        <div class="card" onclick="pick(this,'j8')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">J-08</div><div class="card-title">자동 견적 3안 생성</div><div class="card-sub">①최저가 ②최소공급사 ③SD</div><span class="badge b-jj">플랫폼</span></div>
+        <div class="card" onclick="pick(this,'j9')"><div class="card-step">J-09</div><div class="card-title">운영자 검토·안 확정</div><div class="card-sub">3안 비교·수동 조정 가능</div><span class="badge b-op">운영자</span></div>
+        <div class="card" onclick="pick(this,'j10')"><div class="card-step">J-10</div><div class="card-title">내부 결재 승인</div><div class="card-sub">대표이사 최종 승인 또는 반려(+메모)</div><span class="badge b-all">대표이사</span></div>
+        <div class="card" onclick="pick(this,'j11')"><div class="card-step">J-11 – 12</div><div class="card-title">구매사 제출·승인</div><div class="card-sub">마진 비공개·유효기간 내 승인</div><span class="badge b-buy">구매사</span></div>
+        <div class="card" onclick="pick(this,'j13')"><div class="card-step">J-13</div><div class="card-title">PO 자동 발행</div><div class="card-sub">납품지 분리·선금 30%(일반)</div><span class="badge b-jj">플랫폼</span></div>
+      </div>
+      <div class="row row-4">
+        <div class="card" onclick="pick(this,'j14')"><div class="card-step">J-14 – 15</div><div class="card-title">SHIP 출고·분할납품</div><div class="card-sub">모-자 SHIP·거래명세서·성적서</div><span class="badge b-sup">공급사</span></div>
+        <div class="card" onclick="pick(this,'j16')"><div class="card-step">J-16 – 17</div><div class="card-title">검수·PO CLOSED</div><div class="card-sub">Σ검수합격 = PO수량 → 자동 CLOSED</div><span class="badge b-buy">구매사</span></div>
+        <div class="card" onclick="pick(this,'j18')" style="border-style:dashed"><div class="card-step">J-18 (선택)</div><div class="card-title">클레임·재납품·환불</div><div class="card-sub">IN_DISPUTE → 재납품 or 환불</div><span class="badge b-buy">구매사</span></div>
+        <div class="card" onclick="pick(this,'j20')"><div class="card-step">J-20 – 22</div><div class="card-title">월정산·공급사 지급</div><div class="card-sub">원가 기준 지급·마진 = 자사 운영 수익</div><span class="badge b-set">정산팀</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="f-arr">↓ <span class="f-arr-lbl">실제 발주단가·납기·입고 데이터 → ERP 원가 반영</span></div>
+
+  <!-- PHASE 04 -->
+  <div class="sec c-erp">
+    <div class="sec-head">
+      <div class="sec-dot" style="background:var(--erp)"></div>
+      <div class="sec-phase">PHASE 04</div>
+      <div class="sec-title">ERP 실행 관리 — 프로젝트 실행 중 통합 관리</div>
+      <div style="margin-left:auto;font-size:10px;color:var(--text3)">PJT 클릭 시 하위 6개 관리 항목 접근</div>
+    </div>
+    <div class="sec-body">
+      <div class="row row-3" style="margin-bottom:8px">
+        <div class="card" onclick="pick(this,'x1')"><div class="card-step">17-①</div><div class="card-title">실행예산 관리</div><div class="card-sub">영업부·담당부서 등록 / 산출 근거 첨부 / 부서별 본인 예산만 열람</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'x_cost')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">17-②</div><div class="card-title">원가 관리</div><div class="card-sub">일·주간 실제 비용 입력 / 실행예산 대비 비교 / 예상 손익 계산</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'x_sched')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">17-③</div><div class="card-title">공정 / 일정 관리</div><div class="card-sub">WBS 기반 계획 대비 실적 진행률 / 지연 항목·사유 입력</div><span class="badge b-erp">ERP</span></div>
+      </div>
+      <div class="row row-3">
+        <div class="card" onclick="pick(this,'x_chg')"><div class="card-step">17-④</div><div class="card-title">변경 관리</div><div class="card-sub">설계변경·사고·납기·사양·추가요청 / 담당자·발생일·처리상태 관리</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'x_close')"><div class="card-step">17-⑤</div><div class="card-title">월마감</div><div class="card-sub">월별 원가·기성·진행률·미정산 항목 정리 / 월말 마감 처리</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'x_doc')"><div class="card-step">17-⑥</div><div class="card-title">문서 관리</div><div class="card-sub">계약서·견적서·실행예산·공정표·공문·MOM·변경자료 통합 첨부·조회</div><span class="badge b-erp">ERP</span></div>
+      </div>
+      <div class="row row-3">
+        <div class="card" onclick="pick(this,'x2')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">17-연동</div><div class="card-title">실제 원가 ERP 반영</div><div class="card-sub">자재톡 발주단가·납기·SHIP 상태 → ERP 원가 자동 업데이트</div><span class="badge b-jj">자재톡</span></div>
+        <div class="card" onclick="pick(this,'x3')"><div class="card-step">18 – 19</div><div class="card-title">완료·공사완료보고서</div><div class="card-sub">실행원가·변경관리 최종 확정</div><span class="badge b-erp">ERP</span></div>
+        <div style="grid-column: span 1"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="f-arr">↓ <span class="f-arr-lbl">실행원가 확정 → 피드백 분석 시작</span></div>
+
+  <!-- PHASE 05 -->
+  <div class="sec c-fb">
+    <div class="sec-head">
+      <div class="sec-dot" style="background:var(--fb)"></div>
+      <div class="sec-phase">PHASE 05</div>
+      <div class="sec-title">완료 후 피드백 — 데이터 순환 루프</div>
+    </div>
+    <div class="sec-body">
+      <div class="row row-4">
+        <div class="card" onclick="pick(this,'f1')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">20</div><div class="card-title">견적 vs 실행원가 비교</div><div class="card-sub">항목별 편차 분석·원인 규명</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'f2')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">21</div><div class="card-title">자재톡 실제 단가 비교</div><div class="card-sub">예상 단가 vs 실제 발주단가</div><span class="badge b-jj">자재톡</span></div>
+        <div class="card" onclick="pick(this,'f3')"><div class="card-tags"><span class="tag-ai">AI</span><span class="tag-mon">모니터링</span></div><div class="card-step">22</div><div class="card-title">공정·품질·안전 이슈</div><div class="card-sub">생산성·NCR·안전 데이터 수집</div><span class="badge b-erp">ERP</span></div>
+        <div class="card" onclick="pick(this,'f4')"><div class="card-tags"><span class="tag-ai">AI</span></div><div class="card-step">23 – 24</div><div class="card-title">AI 보정 → 정확도 향상</div><div class="card-sub">단가·물량·공기 기준 데이터 갱신</div><span class="badge b-ai">견적 AI</span></div>
+      </div>
+      <div class="fb-banner"><span style="font-size:16px">↺</span> 보정 완료 → <strong>Step 01 (다음 견적 요청)</strong>으로 순환 · 프로젝트 누적으로 AI 정확도 지속 향상</div>
+    </div>
+  </div>
+
+</div><!-- /v-full -->
+
+
+<!-- ══════════ VIEW 2: 자재톡 내부 22단계 ══════════ -->
+<div class="view canvas" id="v-jajae">
+<div class="swim-wrap">
+
+  <!-- 헤더 -->
+  <div class="swim-header">
+    <div class="swim-header-label">참여자</div>
+    <div class="swim-header-phases">
+      <div class="swim-phase-hd" style="flex:4">① POR 접수·운영자 검토</div>
+      <div class="swim-phase-hd" style="flex:3">② 견적 차수·RFQ</div>
+      <div class="swim-phase-hd" style="flex:4">③ 3안·내부결재·구매사 제출</div>
+      <div class="swim-phase-hd" style="flex:4">④ PO·납품·검수·클레임</div>
+      <div class="swim-phase-hd" style="flex:2; border-right:none">⑤ 정산</div>
+    </div>
+  </div>
+
+  <!-- 구매사 -->
+  <div class="swim-row">
+    <div class="swim-label"><div class="sl-icon">🟠</div><div class="sl-name" style="color:var(--buy)">구매사</div><div class="sl-sub">PA/PB/PC</div></div>
+    <div class="swim-body" style="background:rgba(249,115,22,.025)">
+      <div class="sw" onclick="pick(this,'d1')" style="--sw-ac:var(--buy)"><div class="sw-tags"><span class="tag-ai">AI</span></div><div class="sw-step">Step 1</div><div class="sw-title">POR 제출</div><div class="sw-sub">문서 업로드 or 자재선택</div><span class="sw-badge b-buy">구매사</span></div>
+      <div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d12')" style="--sw-ac:var(--buy)"><div class="sw-step">Step 12</div><div class="sw-title">견적 승인</div><div class="sw-sub">유효기간 내 승인</div><span class="sw-badge b-buy">구매사</span></div>
+      <div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d16')" style="--sw-ac:var(--buy)"><div class="sw-step">Step 16</div><div class="sw-title">검수 입력</div><div class="sw-sub">납품지 도착 후</div><span class="sw-badge b-buy">구매사</span></div>
+      <div class="sw" onclick="pick(this,'d18')" style="--sw-ac:var(--buy); border-style:dashed"><div class="sw-step">Step 18 (선택)</div><div class="sw-title">클레임 등록</div><div class="sw-sub">불합격 시</div><span class="sw-badge b-buy">구매사</span></div>
+      <div class="sw-gap"></div>
+    </div>
+  </div>
+
+  <!-- 운영자 -->
+  <div class="swim-row">
+    <div class="swim-label"><div class="sl-icon">🟣</div><div class="sl-name" style="color:var(--op)">운영자</div><div class="sl-sub">플랫폼팀</div></div>
+    <div class="swim-body" style="background:rgba(124,58,237,.02)">
+      <div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d2')" style="--sw-ac:var(--op)"><div class="sw-step">Step 2</div><div class="sw-title">POR 검토</div><div class="sw-sub">품목·규격 표준화</div><span class="sw-badge b-op">운영자</span></div>
+      <div class="sw" onclick="pick(this,'d3')" style="--sw-ac:var(--op)"><div class="sw-tags"><span class="tag-ai">AI</span></div><div class="sw-step">Step 3</div><div class="sw-title">품목 분류·재학습</div><div class="sw-sub">마진율 자동 연결</div><span class="sw-badge b-op">운영자</span></div>
+      <div class="sw" onclick="pick(this,'d4')" style="--sw-ac:var(--op)"><div class="sw-tags"><span class="tag-ai">AI</span></div><div class="sw-step">Step 4</div><div class="sw-title">공급사 매핑</div><div class="sw-sub">자동·SD·수동보정</div><span class="sw-badge b-op">운영자</span></div>
+      <div class="sw" onclick="pick(this,'d5')" style="--sw-ac:var(--op)"><div class="sw-tags"><span class="tag-ai">AI</span></div><div class="sw-step">Step 5</div><div class="sw-title">차수 등록·발행</div><div class="sw-sub">11:00/15:00 배치</div><span class="sw-badge b-op">운영자</span></div>
+      <div class="sw-gap"></div><div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d9')" style="--sw-ac:var(--op)"><div class="sw-step">Step 9</div><div class="sw-title">견적 검토·확정</div><div class="sw-sub">3안 비교·수동 조정</div><span class="sw-badge b-op">운영자</span></div>
+      <div class="sw" onclick="pick(this,'d10')" style="--sw-ac:var(--op)"><div class="sw-step">Step 10</div><div class="sw-title">내부 결재</div><div class="sw-sub">대표이사 승인</div><span class="sw-badge b-all">대표이사</span></div>
+      <div class="sw" onclick="pick(this,'d11')" style="--sw-ac:var(--op)"><div class="sw-step">Step 11</div><div class="sw-title">구매사 견적 제출</div><div class="sw-sub">마진 비공개</div><span class="sw-badge b-op">운영자</span></div>
+      <div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div>
+    </div>
+  </div>
+
+  <!-- 플랫폼 -->
+  <div class="swim-row">
+    <div class="swim-label"><div class="sl-icon">🔵</div><div class="sl-name" style="color:var(--jj)">플랫폼</div><div class="sl-sub">시스템 자동</div></div>
+    <div class="swim-body" style="background:rgba(37,99,235,.02)">
+      <div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d7')" style="--sw-ac:var(--jj)"><div class="sw-step">Step 7</div><div class="sw-title">자동 마감</div><div class="sw-sub">전일 23:59</div><span class="sw-badge b-jj">플랫폼</span></div>
+      <div class="sw" onclick="pick(this,'d8')" style="--sw-ac:var(--jj)"><div class="sw-tags"><span class="tag-ai">AI</span></div><div class="sw-step">Step 8</div><div class="sw-title">견적 3안 생성</div><div class="sw-sub">마진율 자동 적용</div><span class="sw-badge b-jj">플랫폼</span></div>
+      <div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d13')" style="--sw-ac:var(--jj)"><div class="sw-step">Step 13</div><div class="sw-title">PO 자동 발행</div><div class="sw-sub">납품지별 분리</div><span class="sw-badge b-jj">플랫폼</span></div>
+      <div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d17')" style="--sw-ac:var(--jj)"><div class="sw-step">Step 17</div><div class="sw-title">PO 자동 CLOSED</div><div class="sw-sub">Σ검수 = PO수량</div><span class="sw-badge b-jj">플랫폼</span></div>
+      <div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d20')" style="--sw-ac:var(--jj)"><div class="sw-step">Step 20</div><div class="sw-title">월정산 큐 적립</div><div class="sw-sub">원가 기준</div><span class="sw-badge b-jj">플랫폼</span></div>
+    </div>
+  </div>
+
+  <!-- 공급사 -->
+  <div class="swim-row">
+    <div class="swim-label"><div class="sl-icon">🟢</div><div class="sl-name" style="color:var(--erp)">공급사</div><div class="sl-sub">SA – SD</div></div>
+    <div class="swim-body" style="background:rgba(5,150,105,.02)">
+      <div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d6')" style="--sw-ac:var(--erp)"><div class="sw-step">Step 6</div><div class="sw-title">견적 제출</div><div class="sw-sub">단가·납기 제출</div><span class="sw-badge b-sup">공급사</span></div>
+      <div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div><div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d14')" style="--sw-ac:var(--erp)"><div class="sw-step">Step 14–15</div><div class="sw-title">SHIP 출고·분할납품</div><div class="sw-sub">거래명세서·성적서 등록</div><span class="sw-badge b-sup">공급사</span></div>
+      <div class="sw-gap"></div><div class="sw-gap"></div>
+      <div class="sw" onclick="pick(this,'d22')" style="--sw-ac:var(--erp)"><div class="sw-step">Step 22</div><div class="sw-title">공급사 지급</div><div class="sw-sub">원가 기준 계좌</div><span class="sw-badge b-set">정산팀</span></div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /v-jajae -->
+
+
+<!-- ══════════ VIEW 3: 데이터 연동 구조 ══════════ -->
+<div class="view canvas" id="v-conn">
+
+  <div class="section-lbl">시스템 간 데이터 흐름 — 3방향 내부 연계</div>
+
+  <div class="conn-row">
+    <div class="conn-box" style="border-color:var(--ai-border)">
+      <h5 style="color:var(--ai)">🟣 견적 AI → 자재톡</h5>
+      <ul>
+        <li><b>품목코드 목록</b> (BOM/MTO 추출 결과)</li>
+        <li><b>수량·단위·희망납기</b></li>
+        <li><b>대분류 코드</b> (마진율 연결용)</li>
+      </ul>
+    </div>
+    <div class="conn-mid"><span>⇄</span><small>RFQ 요청<br>단가 반환</small></div>
+    <div class="conn-box" style="border-color:var(--jj-border)">
+      <h5 style="color:var(--jj)">🔵 자재톡 → 견적 AI</h5>
+      <ul>
+        <li><b>시장 단가</b> (공급사 견적 기반, 자체 가격 데이터 누적)</li>
+        <li><b>3안 단가</b> (최저가 / 최소공급사 / SD)</li>
+        <li><b>납기 정보 · 공급사 평가 이력 · 대체 품목</b></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="conn-row">
+    <div class="conn-box" style="border-color:var(--erp-border)">
+      <h5 style="color:var(--erp)">🟢 ERP → 자재톡</h5>
+      <ul>
+        <li><b>구매요청(POR)</b> 품목·수량·납품지</li>
+        <li><b>프로젝트 코드</b> · <b>희망납기</b> · <b>원가 코드</b></li>
+      </ul>
+    </div>
+    <div class="conn-mid"><span>⇄</span><small>실행 구매<br>연동</small></div>
+    <div class="conn-box" style="border-color:var(--jj-border)">
+      <h5 style="color:var(--jj)">🔵 자재톡 → ERP</h5>
+      <ul>
+        <li><b>실제 발주단가</b> (PO 확정가)</li>
+        <li><b>납기·입고 일자 · PO 상태 · 거래명세서 · 공급사 평가 점수</b></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="conn-row">
+    <div class="conn-box" style="border-color:var(--fb-border)">
+      <h5 style="color:var(--fb)">🔴 ERP → 견적 AI (피드백)</h5>
+      <ul>
+        <li><b>실행원가 확정 · 견적 vs 실행 편차</b></li>
+        <li><b>공정 생산성 실적 · 품질·안전 이슈 이력</b></li>
+      </ul>
+    </div>
+    <div class="conn-mid" style="color:var(--fb)"><span>↺</span><small style="color:var(--fb)">학습<br>피드백</small></div>
+    <div class="conn-box" style="border-color:var(--ai-border)">
+      <h5 style="color:var(--ai)">🟣 자재톡 → 견적 AI (피드백)</h5>
+      <ul>
+        <li><b>실제 발주단가 이력 · 공급사별 단가 추이</b></li>
+        <li><b>납기 준수율 · 클레임 발생 이력</b></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-lbl" style="margin-top:6px">자재톡에서 생성되는 핵심 데이터 객체</div>
+  <div class="obj-grid">
+    <div class="obj-card" onclick="pick(this,'obj1')"><h5>자재 단가 데이터</h5><p>공급사 견적가·마진율·제시가<br>→ 견적 AI 단가 기준 + ERP 원가</p></div>
+    <div class="obj-card" onclick="pick(this,'obj2')"><h5>견적 데이터 (QUOTE)</h5><p>3안 비교·확정안·제시가<br>→ AI 학습 + ERP 실행예산 기준</p></div>
+    <div class="obj-card" onclick="pick(this,'obj3')"><h5>PO · 발주 데이터</h5><p>확정단가·납기·SHIP 이력<br>→ ERP 실제 원가 반영</p></div>
+    <div class="obj-card" onclick="pick(this,'obj4')"><h5>공급사 평가 데이터</h5><p>납기준수율·클레임률·SD 등급<br>→ 다음 POR 자동매핑 기준</p></div>
+  </div>
+
+</div><!-- /v-conn -->
+
+</div><!-- /canvas -->
+
+</div><!-- /body -->
+
+<!-- 우측 하단 팝업 -->
+<div class="popup" id="popup">
+  <div class="popup-header" id="popup-header">
+    <div class="popup-header-left">
+      <div class="drag-hint">
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
+      <span class="sp-sys" id="pop-sys"></span>
+      <div class="sp-title" id="pop-title"></div>
+    </div>
+    <button class="popup-close" onclick="closePopup()">✕</button>
+  </div>
+  <div class="popup-body">
+    <div class="sp-desc" id="pop-desc"></div>
+    <hr class="sp-hr">
+    <div>
+      <div class="sp-lbl">데이터 흐름</div>
+      <div class="sp-flow" id="pop-flow"></div>
+    </div>
+    <div>
+      <div class="sp-lbl">키워드</div>
+      <div class="sp-tags" id="pop-tags"></div>
+    </div>
+  </div>
+</div>
+</div><!-- /app -->
+
+<script>
+const SC = {
+  '견적 AI':{c:'#6c5ce7',bg:'#f0eeff'},'ERP':{c:'#059669',bg:'#ecfdf5'},'자재톡':{c:'#2563eb',bg:'#eff6ff'},
+  '피드백':{c:'#ea580c',bg:'#fff7ed'},'연동':{c:'#92400e',bg:'#fffbeb'},'운영자':{c:'#7c3aed',bg:'#f5f3ff'},
+  '공급사':{c:'#059669',bg:'#ecfdf5'},'구매사':{c:'#dc6803',bg:'#fff7ed'},'정산팀':{c:'#b45309',bg:'#fffbeb'},
+  '플랫폼':{c:'#2563eb',bg:'#eff6ff'},'대표이사':{c:'#475467',bg:'#f8fafc'},'영업부':{c:'#475467',bg:'#f8fafc'},'전 부서':{c:'#475467',bg:'#f8fafc'},
+};
+const DB = {
+  e1:{sys:'견적 AI',t:'고객 견적 요청 접수',d:'고객으로부터 도면·시방서·RFQ·견적요청서를 수신하여 견적 AI에 업로드합니다. PDF·DWG·Excel 등 다양한 형식을 OCR로 파싱하여 공종·재료·수량을 자동 추출합니다.',tags:['PDF·DWG 업로드','OCR 전처리','문서 분류'],flow:'고객 → 파일 업로드 → 견적 AI 접수 → BOM 추출'},
+  e2:{sys:'견적 AI',t:'BOM / MTO 추출',d:'분석 문서에서 자재 명세서(BOM)와 자재 소요량(MTO)을 자동 생성합니다. 품목코드 표준화가 선행되어야 자재톡·ERP와 연동됩니다.',tags:['BOM 생성','MTO 생성','품목코드 매핑'],flow:'문서 분석 → 품목코드 리스트 생성 → 자재톡 RFQ 요청'},
+  e3:{sys:'연동',t:'자재톡 단가 요청 (연계 포인트)',d:'견적 AI가 추출한 품목코드·수량·희망납기를 자재톡(자사 개발 구매 플랫폼)의 POR 형태로 전달합니다. 자재톡 내부에서 운영자 검토 → 공급사 RFQ → 견적 제출 → 3안 생성의 전체 프로세스가 실행됩니다. 자재톡은 외부 시스템이 아닌 자사 개발 플랫폼으로, 내부 시스템 간 데이터 연계입니다.',tags:['품목코드 전달','수량·납기 전달','POR 자동 생성','자사 플랫폼 내부 연계'],flow:'견적 AI BOM → 자재톡 POR 생성 → 운영자 검토 → 공급사 RFQ'},
+  e4:{sys:'연동',t:'자재톡 단가 수신 (연계 포인트)',d:'자재톡에서 공급사 견적 제출·내부결재가 완료되면 확정 단가 데이터(최저가/최소공급사/SD)를 견적 AI로 반환합니다. 자재톡은 자사 개발 구매 플랫폼이므로 외부 API 의존 없이 내부 연계로 처리됩니다.',tags:['최저가 단가','납기 정보','3안 단가 반환','내부 시스템 연계'],flow:'자재톡 견적 확정 → 단가 반환 → 견적 AI 원가 산출'},
+  e5:{sys:'견적 AI',t:'원가 산출 → 견적서 초안',d:'자재톡에서 받은 단가를 기반으로 자재비·노무비·외주비·장비비를 산출하고 견적서 초안을 생성합니다. 수주 시 ERP로 전환될 실행예산 초안도 동시에 생성됩니다.',tags:['자재비','노무비','외주비','장비비','실행예산 초안'],flow:'단가 수신 → 원가 산출 → 견적서 초안 + 실행예산 초안 생성'},
+  e6:{sys:'영업부',t:'검토 → 제출 → 수주 확정',d:'담당자가 초안을 검토·수정 후 고객에게 최종 견적을 제출합니다. 수주 확정 시 견적 AI의 BOM·원가·실행예산 초안 전체가 ERP로 자동 이관됩니다.',tags:['담당자 검토','견적 제출','수주 확정','ERP 이관'],flow:'견적 제출 → 수주 확정 → 견적 AI 데이터 전체 → ERP 자동 이관'},
+  r1:{sys:'ERP',t:'ERP 등록 · 수주통보서 발행',d:'수주 확정과 동시에 견적 AI 데이터가 ERP로 이관됩니다. 프로젝트 코드가 생성되고 수주통보서가 발행됩니다.\n\n[투찰 정보 공유] 견적금액, 경쟁사 현황, 낙찰 조건 등 입찰 관련 정보가 수주통보서와 함께 관련 부서에 공유됩니다.\n\n[실행예산 병기] 가능한 경우 실행예산을 수주통보서 시점에 함께 전달합니다. 미확정인 경우 "작성상태"와 "확정예정일"을 함께 표시하여 Kick-off 이전에 준비 가능하도록 합니다.',tags:['프로젝트 코드 생성','견적 데이터 이관','투찰 정보 공유','실행예산 or 확정예정일 병기'],flow:'견적 AI → ERP 자동 이관 → 수주통보서 + 투찰정보 + 실행예산(안) 발행'},
+  r2:{sys:'ERP',t:'프로젝트 유형 분류',d:'EPC·제작납품·제작시공·시공단독 4가지 유형으로 분류합니다. 유형에 따라 관여 부서와 자재톡 구매 범위가 달라집니다.',tags:['EPC','제작납품','제작시공','시공단독'],flow:'유형 확정 → ERP 관여부서 자동 선정 → 동시 알림'},
+  r3:{sys:'ERP',t:'부서 동시 공유 · 사전 검토',d:'ERP가 관련 부서에 동시 알림을 발송합니다. 각 부서가 체크리스트 기반으로 사전 검토를 수행하고 의견을 ERP에 입력합니다.\n\n[공유 범위] 수주통보서 + 투찰 정보(견적금액·경쟁현황·낙찰조건) + 실행예산(확정 or 작성상태+확정예정일) 가 함께 공유됩니다. 각 부서는 본인 담당 실행예산 항목을 미리 검토할 수 있습니다.',tags:['기술부','생산부','품질부','안전부','공사부','사업관리부','투찰정보 공유','실행예산(안) 공유'],flow:'ERP 알림 → 투찰정보·실행예산(안) 공유 → 체크리스트 검토 → 의견 ERP 입력'},
+  r4:{sys:'전 부서',t:'Kick-off Meeting',d:'모든 검토 의견을 바탕으로 실행계획·실행예산·역할분담을 공식 확정합니다. 자재톡 구매요청 목록도 확정됩니다.\n\n[실행예산 최종 확정] 수주통보서 시점에 미확정이었던 실행예산을 이 단계에서 최종 확정합니다. Kick-off 전까지 각 부서가 사전에 검토한 내용을 기반으로 합의합니다.',tags:['실행예산 최종 확정','역할 분담','MOM 작성','미확정 예산 최종 처리'],flow:'Kick-off → 실행예산 최종 확정 → ERP 구매요청 → 자재톡 POR'},
+  j1:{sys:'자재톡',t:'POR 접수',d:'ERP에서 생성된 구매요청이 자재톡(자사 개발 구매 플랫폼)의 POR로 전달됩니다. 자재톡은 외부 솔루션이 아닌 자사에서 직접 개발·운영하는 구매 전용 플랫폼으로, ERP·견적 AI와 함께 KDM 통합 시스템의 핵심 3개 축 중 하나입니다. 문서 업로드(엑셀·PDF) 또는 플랫폼 자재 카탈로그 선택 방식을 지원합니다.',tags:['자사 개발 구매 플랫폼','ERP 구매요청→POR','품목코드 매핑','납품지 지정'],flow:'ERP 구매요청 → 자재톡 POR → SUBMITTED'},
+  j2:{sys:'운영자',t:'운영자 POR 검토',d:'운영자가 품목명·규격·단위를 표준화합니다. 제출 방식과 무관하게 운영자 검토는 필수이며, 검토 없이 차수 발행이 불가합니다.',tags:['필수 검토','표준화','오류 보정'],flow:'SUBMITTED → REVIEWING'},
+  j3:{sys:'운영자',t:'품목 분류 · AI 재학습',d:'대분류 확정 시 해당 마진율이 자동 연결됩니다. 분류 수정 시 ITEM_LEARN 테이블에 적재되어 AI 정확도가 지속 향상됩니다.',tags:['분류 확정','마진율 자동 연결','재학습 적재'],flow:'REVIEWING → MAPPING → 마진율 연결'},
+  j4:{sys:'운영자',t:'공급사 매핑',d:'품목 분류 기반 공급사 자동 제안. SD(우수공급사) 자동 포함. 복수 공급사 지정으로 경쟁 견적을 유도합니다.',tags:['자동 매핑','SD 포함','복수 공급사'],flow:'MAPPING → 공급사 선정 → READY'},
+  j5:{sys:'플랫폼',t:'차수 등록 · RFQ 발행',d:'하루 2회(11:00·15:00) 배치로 READY 상태인 POR만 차수에 합류됩니다. 합류 조건: ①접수일≤기준마감일 ②마감일차이≤7일 ③겹치는품목≥1개.',tags:['11:00·15:00 배치','합류 조건 3가지','RFQ 자동 발송'],flow:'READY → 배치 → REQ_Rn → DISPATCHED → OPEN'},
+  j6:{sys:'공급사',t:'공급사 견적 제출',d:'공급사가 차수 내 품목별 단가·납기를 제출합니다. 중복 제출 시 마지막 단가 유효. 마감 48h·24h 전 리마인더 자동 발송.',tags:['단가·납기 제출','중복 시 최신 유효','리마인더'],flow:'RFQ 수신 → 견적 제출 → BIDDING'},
+  j7:{sys:'플랫폼',t:'견적 마감 (자동)',d:'기준마감일 전일 23:59 자동 마감. 미응찰 품목은 CANCELLED. 운영자는 기간 연장·대체 제안·패스트트랙 3가지 대응을 선택할 수 있습니다.',tags:['23:59 자동 마감','미응찰 CANCELLED','3가지 대응'],flow:'BIDDING → 자동 마감 → CLOSED'},
+  j8:{sys:'플랫폼',t:'자동 견적 3안 생성',d:'①최저가안 ②최소공급사안 ③우수공급사(SD)안이 마진율 적용 후 자동 생성됩니다. 이 단가 데이터가 견적 AI 및 ERP 원가 기준이 됩니다.',tags:['①최저가안','②최소공급사안','③SD안','마진율 자동 적용'],flow:'CLOSED → 마진율 적용 → 3안 생성 → 운영자 대기'},
+  j9:{sys:'운영자',t:'운영자 견적 검토 · 안 확정',d:'총금액·공급사수·커버율·SD 포함 여부를 비교해 제출안을 선택합니다. 3안이 부적합하면 수동 마진율 조정·단가 직접 입력이 가능합니다.',tags:['3안 비교','수동 조정 가능','선택 사유 기록'],flow:'3안 비교 → 안 선택 or 수동 조정 → 결재 요청'},
+  j10:{sys:'대표이사',t:'내부 결재 승인',d:'대표이사가 운영자가 선택한 견적안을 최종 승인 또는 반려(+메모)합니다. 반려 시 운영자 재검토 후 재승인 요청으로 순환합니다. 마감일 경과(케이스 무관) 시 3일 자동 연장 + 구매사 알림. 자동 전달 없음.',tags:['대표이사 승인','반려 시 재검토'],flow:'결재 요청 → 승인 → APPROVED_INTERNAL'},
+  j11:{sys:'운영자',t:'구매사 견적 제출 · 승인',d:'내부결재 완료 후 견적서를 구매사에 발송합니다. 마진 비공개. 유효기간 내 미승인 시 자동 취소(EXPIRED)됩니다.',tags:['마진 비공개','유효기간 자동 취소'],flow:'APPROVED_INTERNAL → 견적서 발송 → 구매사 승인 → APPROVED'},
+  j13:{sys:'플랫폼',t:'PO 자동 발행',d:'납품지 복수 시 납품지별 분리됩니다. 일반 등급 구매사는 PO 발행 즉시 선금 30%가 자동 청구됩니다.',tags:['PO 자동 생성','납품지별 분리','선금 30%'],flow:'APPROVED → PO 발행 → OPEN → 선금 청구(일반)'},
+  j14:{sys:'공급사',t:'SHIP 출고 · 분할 납품',d:'모-자 SHIP 구조로 분할 납품을 관리합니다. 인도 완료 시 거래명세서와 성적서 등록이 필수입니다.',tags:['모-자 SHIP','거래명세서','성적서','분할 납품'],flow:'PO OPEN → SHIP 등록 → IN_TRANSIT → 인도완료'},
+  j16:{sys:'구매사',t:'검수 · PO CLOSED',d:'Σ검수합격수량 = PO수량이 되면 PO가 자동 CLOSED됩니다. 잔금이 청구되고 월정산 큐에 원가가 적립됩니다.',tags:['Σ검수=PO수량→CLOSED','잔금 자동 청구','월정산 큐 적립'],flow:'검수 합격 누적 → Σ=PO수량 → PO CLOSED → 잔금 청구'},
+  j18:{sys:'구매사',t:'클레임 · 재납품 · 환불',d:'검수 불합격 시 IN_DISPUTE 상태로 전환됩니다. 재납품 또는 환불(케이스 A/B)로 처리됩니다. 재납품 완료만으로 PO가 자동 CLOSE되지 않으며 재검수가 필요합니다.',tags:['IN_DISPUTE','재납품','환불 케이스 A/B','재검수 필수'],flow:'불합격 → IN_DISPUTE → 재납품 or 환불 → 재검수 → CLOSED'},
+  j20:{sys:'정산팀',t:'월정산 · 공급사 지급',d:'PO CLOSED 시 원가가 적립됩니다. 말일 5일 전 집계→공급사 확인→검증→내부결재→원가 기준 계좌 지급. 마진(제시가-원가)은 자사 운영 수익으로 귀속됩니다.',tags:['월정산 큐','원가 기준 지급','마진=자사 운영수익'],flow:'PO CLOSED → 큐 적립 → 집계 → 내부결재 → 공급사 지급'},
+  x1:{sys:'ERP',t:'실행예산 관리',d:'영업부 또는 담당 부서에서 실행예산을 ERP에 등록합니다.\n\n• 실행예산 산출 근거 문서를 함께 첨부할 수 있습니다.\n• 각 부서는 본인 담당 실행예산 항목만 열람 가능하며, 타 부서 예산은 권한에 따라 제한됩니다.\n• 수주통보서 시점에 미확정이었던 항목은 Kick-off 이후 등록·확정합니다.',tags:['부서별 실행예산 등록','산출 근거 첨부','부서별 열람 권한 제한','Kick-off 후 최종 확정'],flow:'수주통보서 발행 → 예산 등록(확정 or 잠정) → Kick-off → 최종 확정 → 부서별 조회'},
+  x_cost:{sys:'ERP',t:'원가 관리',d:'실제 발생 비용을 일별 또는 주간 단위로 입력하고 실행예산과 비교합니다.\n\n• 공사부 등 현장 부서는 특히 세밀한 원가 입력이 필요합니다.\n• 실행예산 대비 실제 원가 비교로 편차를 실시간 모니터링합니다.\n• 잔여 예산과 예상 완료 원가를 기반으로 예상 프로젝트 손익을 자동 계산합니다.',tags:['일·주간 원가 입력','실행예산 대비 비교','예상 손익 계산','공사부 현장 원가'],flow:'비용 발생 → 원가 입력 → 예산 대비 비교 → 예상 손익 산출'},
+  x_sched:{sys:'ERP',t:'공정 / 일정 관리',d:'Kick-off Meeting 기준 공정표를 기반으로 계획 대비 실제 진행률을 관리합니다.\n\n• 간단한 WBS 구조 기반으로 항목별 진행률을 상시 확인할 수 있습니다.\n• 지연 항목을 자동으로 식별하고, 담당자가 지연 사유를 입력할 수 있습니다.\n• 기준 공정 대비 실적 공정을 비교하여 프로젝트 일정 리스크를 가시화합니다.',tags:['WBS 기반 일정 관리','계획 대비 실적 진행률','지연 항목 알림','지연 사유 입력'],flow:'기준 공정표 등록 → 실적 입력 → 계획 대비 비교 → 지연 항목 식별 → 사유 입력'},
+  x_chg:{sys:'ERP',t:'변경 관리',d:'프로젝트 실행 중 발생하는 주요 이슈와 변경사항을 등록·추적합니다.\n\n• 설계변경, 사고, 납기변경, 사양변경, 추가 요청사항 등을 유형별로 분류하여 등록합니다.\n• 이슈별로 담당자, 발생일, 처리상태를 관리하며 이력을 보존합니다.\n• 변경 이슈가 원가 또는 일정에 미치는 영향을 함께 기록합니다.',tags:['설계변경','사양변경','납기변경','담당자·처리상태 관리','이슈 이력 보존'],flow:'이슈 발생 → 유형 분류 등록 → 담당자 지정 → 처리 진행 → 상태 업데이트 → 완료'},
+  x_close:{sys:'ERP',t:'월마감',d:'월말 기준으로 원가·기성·진행률·미정산 항목을 정리하고 마감 처리합니다.\n\n• 월별 원가 집계: 해당 월 발생한 실제 비용 확정\n• 기성 정리: 발주처 청구 기성 대비 진행률 정합성 확인\n• 미정산 항목: 정산이 완료되지 않은 항목 목록화\n• 마감 후 수정은 별도 승인 절차를 통해 처리합니다.',tags:['월말 마감','월별 원가 집계','기성 정리','미정산 항목 관리'],flow:'월말 기준 → 원가 집계 → 기성 확인 → 미정산 목록 → 마감 승인 → 확정'},
+  x_doc:{sys:'ERP',t:'문서 관리',d:'프로젝트 관련 주요 문서를 한곳에서 첨부하고 관리합니다.\n\n• 관리 대상 문서: 계약서, 견적서, 실행예산, 공정표, 공문, MOM(회의록), 변경 자료 등\n• 문서 유형별 분류 및 버전 관리\n• 프로젝트 참여 부서별 접근 권한 제어\n• 검색 및 다운로드 기능 제공',tags:['계약서·견적서','실행예산·공정표','공문·MOM','변경자료','버전 관리','부서별 권한'],flow:'문서 업로드 → 유형 분류 → 권한 설정 → 검색·조회 → 다운로드'},
+  x2:{sys:'ERP',t:'실제 원가 ERP 반영',d:'자재톡에서 확정된 발주단가·납기·SHIP 상태가 ERP로 전달됩니다. 견적 예상 단가와 실제 발주단가를 항목별로 비교할 수 있습니다.',tags:['발주단가→ERP','예산 대비 실행원가','편차 모니터링'],flow:'자재톡 PO CLOSED → 원가 데이터 → ERP 업데이트'},
+  x3:{sys:'ERP',t:'완료 · 공사완료보고서',d:'실행원가·변경관리 내역을 포함한 최종 공사완료보고서를 ERP에서 확정합니다.',tags:['실행원가 확정','변경관리 이력','완료보고서'],flow:'프로젝트 완료 → 실행원가 확정 → 보고서 → 피드백 시작'},
+  f1:{sys:'ERP',t:'견적 vs 실행원가 비교',d:'최초 견적금액과 실제 실행원가를 자재비·노무비·외주비·장비비별로 비교합니다. 편차가 큰 항목이 AI 보정 대상이 됩니다.',tags:['항목별 편차','원인 분석','보정 대상 선정'],flow:'실행원가 확정 → 항목별 비교 → 편차 리포트'},
+  f2:{sys:'자재톡',t:'자재톡 실제 단가 비교',d:'견적 시 예상 단가와 실제 발주단가를 품목별로 비교합니다. 이 데이터가 다음 견적 AI 단가 기준에 반영됩니다.',tags:['예상 단가 vs 발주단가','품목별 편차','가격 추이'],flow:'자재톡 발주 이력 → 단가 편차 분석 → 견적 AI 단가 기준 갱신'},
+  f3:{sys:'ERP',t:'공정·품질·안전 이슈 정리',d:'공정 생산성·NCR·안전 사고 데이터를 수집합니다. 향후 유사 프로젝트의 리스크 기준 데이터가 됩니다.',tags:['공정 생산성','NCR 이력','안전 이슈'],flow:'완료 → 이슈 수집 → 리스크 기준 갱신'},
+  f4:{sys:'견적 AI',t:'AI 기준 데이터 보정 → 정확도 향상',d:'실행원가·단가·생산성 데이터로 견적 AI의 단가 기준·물량 계수·공기 기준을 업데이트합니다. 프로젝트 누적으로 AI 정확도가 지속 향상됩니다.',tags:['단가 기준 업데이트','생산성 계수 보정','AI 재학습'],flow:'피드백 데이터 → 견적 AI 보정 → 자재톡 기준 갱신 → Step 01 순환'},
+  d1:{sys:'구매사',t:'Step 1: POR 제출',d:'구매사가 구매의뢰(POR)를 제출합니다. 엑셀·PDF 업로드 또는 자재 카탈로그 선택 방식.',tags:['문서 업로드','자재 카탈로그','ERP→POR 변환'],flow:'ERP 구매요청 → 자재톡 POR → SUBMITTED'},
+  d2:{sys:'운영자',t:'Step 2: 운영자 POR 검토',d:'품목명·규격·단위를 표준화합니다. 제출 방식과 무관하게 운영자 검토는 필수입니다.',tags:['필수 검토','표준화','오류 보정'],flow:'SUBMITTED → REVIEWING'},
+  d3:{sys:'운영자',t:'Step 3: 품목 분류·마진율 연결',d:'대분류 확정 시 해당 마진율이 자동 연결됩니다. 수정 이력은 ITEM_LEARN에 적재되어 AI 정확도가 향상됩니다.',tags:['분류 확정','마진율 자동 연결','재학습 적재'],flow:'REVIEWING → MAPPING → 마진율 연결'},
+  d4:{sys:'운영자',t:'Step 4: 공급사 매핑',d:'품목 분류 기반 공급사 자동 제안. SD 자동 포함. 복수 공급사 지정으로 경쟁 견적을 유도합니다.',tags:['자동 매핑','SD 포함','복수 공급사'],flow:'MAPPING → 공급사 선정 → READY'},
+  d5:{sys:'운영자',t:'Step 5: 차수 등록·RFQ 발행',d:'하루 2회(11:00·15:00) 배치. READY 상태인 POR만 합류. 합류 조건 3가지를 모두 충족해야 합니다.',tags:['11:00·15:00 배치','합류 조건 3가지','RFQ 발송'],flow:'READY → 배치 → REQ_Rn → DISPATCHED → OPEN'},
+  d6:{sys:'공급사',t:'Step 6: 공급사 견적 제출',d:'단가·납기를 제출합니다. 중복 제출 시 마지막 단가 유효. 마감 48h·24h 전 리마인더 자동 발송.',tags:['단가·납기 제출','리마인더'],flow:'RFQ 수신 → 견적 제출 → BIDDING'},
+  d7:{sys:'플랫폼',t:'Step 7: 견적 자동 마감',d:'기준마감일 전일 23:59 자동 마감. 미응찰 품목은 CANCELLED. 3가지 대응 가능.',tags:['23:59 자동 마감','미응찰 CANCELLED'],flow:'BIDDING → 자동 마감 → CLOSED'},
+  d8:{sys:'플랫폼',t:'Step 8: 자동 견적 3안 생성',d:'마진율 적용으로 ①최저가 ②최소공급사 ③SD 우선 3안이 자동 생성됩니다.',tags:['마진율 적용','3안 자동 생성'],flow:'CLOSED → 3안 생성 → 운영자 검토 대기'},
+  d9:{sys:'운영자',t:'Step 9: 운영자 견적 검토·확정',d:'총금액·공급사수·커버율·SD 포함을 비교해 제출안을 선택합니다. 수동 마진율 조정 가능.',tags:['3안 비교','수동 조정 가능'],flow:'3안 비교 → 선택 or 수동 조정 → 결재 요청'},
+  d10:{sys:'대표이사',t:'Step 10: 내부 결재 승인',d:'대표이사가 최종 승인 또는 반려(+메모)합니다. 반려 시 운영자 재검토 후 재승인 요청으로 순환합니다. 마감일 경과(케이스 무관) 시 3일 자동 연장 + 구매사 알림.',tags:['대표이사 승인','반려 시 재검토'],flow:'결재 요청 → 승인 → APPROVED_INTERNAL'},
+  d11:{sys:'운영자',t:'Step 11: 구매사 견적 제출',d:'내부결재 완료 후 견적서를 구매사에 발송합니다. 마진 비공개.',tags:['견적서 발송','마진 비공개'],flow:'APPROVED_INTERNAL → 견적서 발송'},
+  d12:{sys:'구매사',t:'Step 12: 구매사 견적 승인',d:'유효기간 내 미승인 시 자동 취소(EXPIRED). 반려 시 운영자 재검토.',tags:['유효기간 자동 취소','반려→재검토'],flow:'수신 → 검토 → 승인 → APPROVED → PO 발행'},
+  d13:{sys:'플랫폼',t:'Step 13: PO 자동 발행',d:'납품지 복수 시 납품지별 분리. 일반 구매사는 PO 발행 즉시 선금 30% 자동 청구.',tags:['PO 자동 생성','납품지별 분리','선금 30%'],flow:'APPROVED → PO 발행 → OPEN → 선금 청구'},
+  d14:{sys:'공급사',t:'Step 14~15: SHIP 출고·분할납품',d:'모-자 SHIP 구조로 분할 납품을 관리합니다. 인도 완료 시 거래명세서와 성적서 등록이 필수입니다.',tags:['모-자 SHIP','거래명세서','성적서'],flow:'PO OPEN → SHIP 등록 → IN_TRANSIT → 인도완료'},
+  d16:{sys:'구매사',t:'Step 16: 검수 입력',d:'납품지 도착 후 검수를 입력합니다. 합격 수량이 누적됩니다.',tags:['검수 입력','합격 수량 누적'],flow:'입고 → 검수 → 합격수량 누적'},
+  d17:{sys:'플랫폼',t:'Step 17: PO 자동 CLOSED',d:'Σ검수합격수량 = PO수량이 되면 자동 CLOSED. 잔금 청구 및 월정산 큐 적립.',tags:['자동 CLOSED','잔금 청구','월정산 큐 적립'],flow:'Σ=PO수량 → PO CLOSED → 잔금 청구 → 월정산 큐'},
+  d18:{sys:'구매사',t:'Step 18: 클레임·재납품·환불',d:'검수 불합격 시 IN_DISPUTE 상태. 재납품 또는 환불(케이스 A/B)로 처리됩니다. 재납품 완료만으로 자동 CLOSE되지 않으며 재검수가 필요합니다.',tags:['IN_DISPUTE','재납품','환불 케이스 A/B'],flow:'불합격 → IN_DISPUTE → 재납품 or 환불 → 재검수 → CLOSED'},
+  d20:{sys:'플랫폼',t:'Step 20~21: 월정산·보고서',d:'PO CLOSED 시 원가 적립. 말일 5일 전 집계→공급사 확인→검증→내부결재 순으로 진행.',tags:['월정산 큐','말일 5일 전','내부결재'],flow:'PO CLOSED → 큐 적립 → 집계 → 보고서 → 결재'},
+  d22:{sys:'정산팀',t:'Step 22: 공급사 지급',d:'내부결재 완료 후 원가 기준으로 계좌 지급. 마진(제시가-원가)은 자사 운영 수익으로 귀속됩니다.',tags:['원가 기준 지급','마진=자사 운영수익'],flow:'결재 완료 → 공급사 계좌 지급'},
+  obj1:{sys:'자재톡',t:'자재 단가 데이터',d:'공급사 견적가(원가)와 마진율 적용 제시가. 견적 AI 단가 기준(수주 전)과 ERP 실제 원가(수주 후) 모두에 활용됩니다. 자재톡은 자사 개발 플랫폼으로, 이 데이터는 외부 유출 없이 자사 시스템 내에서만 순환됩니다.',tags:['공급사 견적가','마진율 제시가','견적 AI 단가 기준','자사 내부 데이터'],flow:'견적 제출 → 마진 적용 → 제시가 생성 → 견적 AI + ERP 활용'},
+  obj2:{sys:'자재톡',t:'견적 데이터 (QUOTE)',d:'3안 비교 결과·확정안·구매사 제시가. AI 학습 기준과 ERP 실행예산 초안 기준이 됩니다.',tags:['3안 비교 이력','확정안','학습 데이터'],flow:'3안 생성 → 내부결재 → 제출 → 이력 저장'},
+  obj3:{sys:'자재톡',t:'PO · 발주 데이터',d:'확정 발주단가·납기·SHIP 이력. ERP 실제 원가로 반영되고 피드백 단계에서 견적 단가와 비교됩니다.',tags:['확정 발주단가','납기·SHIP 이력'],flow:'PO 발행 → SHIP → CLOSED → ERP 원가 반영'},
+  obj4:{sys:'자재톡',t:'공급사 평가 데이터',d:'납기 준수율·클레임 발생률·거래액 기반 SD 등급 평가. 다음 POR의 공급사 자동 매핑 기준이 됩니다.',tags:['납기 준수율','클레임 발생률','SD 등급'],flow:'PO 이력 → 평가 → SD 등급 → 다음 POR 자동 매핑'},
+};
+
+// 시스템별 다크/라이트 색상 쌍 정의
+const SC_DARK = {
+  '견적 AI'  : {dark:'#4c3dd0', mid:'#6c5ce7', light:'#f0eeff'},
+  'ERP'      : {dark:'#047857', mid:'#059669', light:'#ecfdf5'},
+  '자재톡'   : {dark:'#1d4ed8', mid:'#2563eb', light:'#eff6ff'},
+  '피드백'   : {dark:'#c2410c', mid:'#ea580c', light:'#fff7ed'},
+  '연동'     : {dark:'#92400e', mid:'#b45309', light:'#fffbeb'},
+  '운영자'   : {dark:'#5b21b6', mid:'#7c3aed', light:'#f5f3ff'},
+  '공급사'   : {dark:'#047857', mid:'#059669', light:'#ecfdf5'},
+  '구매사'   : {dark:'#b45309', mid:'#dc6803', light:'#fff7ed'},
+  '정산팀'   : {dark:'#92400e', mid:'#b45309', light:'#fffbeb'},
+  '플랫폼'   : {dark:'#1d4ed8', mid:'#2563eb', light:'#eff6ff'},
+  '대표이사' : {dark:'#374151', mid:'#6b7280', light:'#f9fafb'},
+  '영업부'   : {dark:'#374151', mid:'#6b7280', light:'#f9fafb'},
+  '전 부서'  : {dark:'#374151', mid:'#6b7280', light:'#f9fafb'},
+};
+
+let curEl = null;
+
+/* ── 팝업 표시 ── */
+function pick(el, id) {
+  if (curEl) curEl.classList.remove('active');
+  el.classList.add('active');
+  curEl = el;
+  const d = DB[id]; if (!d) return;
+  const col  = SC[d.sys]      || {c:'#6b7280', bg:'#f9fafb'};
+  const colD = SC_DARK[d.sys] || {dark:'#374151', mid:'#6b7280', light:'#f9fafb'};
+
+  const popup  = document.getElementById('popup');
+  const header = document.getElementById('popup-header');
+
+  /* 헤더 배경 */
+  header.style.cssText = `
+    background:${colD.mid};border-bottom:none;
+    padding:14px 14px 13px;display:flex;
+    align-items:flex-start;justify-content:space-between;
+    gap:10px;cursor:grab;
+  `;
+
+  /* 뱃지 */
+  const sys = document.getElementById('pop-sys');
+  sys.textContent = d.sys;
+  sys.style.cssText = `background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.35);
+    font-size:9px;font-weight:800;padding:2px 7px;border-radius:3px;
+    letter-spacing:.07em;text-transform:uppercase;width:fit-content;
+    display:inline-flex;align-items:center;`;
+
+  /* 타이틀 */
+  const title = document.getElementById('pop-title');
+  title.textContent = d.t;
+  title.style.cssText = `color:#fff;font-size:13.5px;font-weight:700;line-height:1.3;`;
+
+  /* 닫기 버튼 */
+  const btn = popup.querySelector('.popup-close');
+  btn.style.cssText = `background:rgba(255,255,255,.18);color:#fff;width:26px;height:26px;
+    border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;font-size:13px;flex-shrink:0;margin-top:1px;font-family:inherit;transition:.12s;`;
+  btn.onmouseenter = () => btn.style.background = 'rgba(255,255,255,.32)';
+  btn.onmouseleave = () => btn.style.background = 'rgba(255,255,255,.18)';
+
+  /* 팝업 테두리 */
+  popup.style.borderColor = colD.dark;
+  popup.style.borderWidth = '1.5px';
+
+  /* 본문 */
+  document.getElementById('pop-desc').textContent = d.d;
+  const flow = document.getElementById('pop-flow');
+  flow.textContent = d.flow;
+  flow.style.cssText = `font-size:10.5px;font-family:'JetBrains Mono',monospace;
+    background:${colD.light};border:1px solid ${col.c}33;border-radius:6px;
+    padding:9px 11px;line-height:1.9;color:${colD.dark};`;
+  document.getElementById('pop-tags').innerHTML =
+    d.tags.map(t => `<span class="sp-tag">${t}</span>`).join('');
+
+  /* 첫 등장 시 우측 하단 위치로 리셋 */
+  if (!popup.classList.contains('show')) {
+    popup.style.top    = '';
+    popup.style.left   = '';
+    popup.style.bottom = '24px';
+    popup.style.right  = '24px';
+  }
+
+  popup.classList.add('show');
+}
+
+function closePopup() {
+  const popup = document.getElementById('popup');
+  popup.classList.remove('show');
+  if (curEl) { curEl.classList.remove('active'); curEl = null; }
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.getElementById('v-' + id).classList.add('on');
+  btn.classList.add('on');
+  closePopup();
+}
+
+/* ── 드래그 앤 드롭 ── */
+(function initDrag() {
+  const popup  = document.getElementById('popup');
+  const handle = document.getElementById('popup-header');
+
+  let dragging = false;
+  let startX, startY, origLeft, origTop;
+
+  handle.addEventListener('mousedown', e => {
+    /* 닫기 버튼 클릭은 드래그 제외 */
+    if (e.target.closest('.popup-close')) return;
+
+    dragging = true;
+    handle.style.cursor = 'grabbing';
+
+    /* bottom/right → top/left 좌표계 전환 */
+    const rect = popup.getBoundingClientRect();
+    origLeft = rect.left;
+    origTop  = rect.top;
+
+    popup.style.left   = origLeft + 'px';
+    popup.style.top    = origTop  + 'px';
+    popup.style.right  = 'auto';
+    popup.style.bottom = 'auto';
+
+    startX = e.clientX;
+    startY = e.clientY;
+
+    popup.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    let newLeft = origLeft + dx;
+    let newTop  = origTop  + dy;
+
+    /* 뷰포트 경계 제한 */
+    const maxLeft = window.innerWidth  - popup.offsetWidth;
+    const maxTop  = window.innerHeight - popup.offsetHeight;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+    newTop  = Math.max(0, Math.min(newTop,  maxTop));
+
+    popup.style.left = newLeft + 'px';
+    popup.style.top  = newTop  + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.style.cursor = 'grab';
+    popup.classList.remove('dragging');
+  });
+
+  /* 터치 지원 */
+  handle.addEventListener('touchstart', e => {
+    if (e.target.closest('.popup-close')) return;
+    const t = e.touches[0];
+    const rect = popup.getBoundingClientRect();
+    origLeft = rect.left;
+    origTop  = rect.top;
+    popup.style.left   = origLeft + 'px';
+    popup.style.top    = origTop  + 'px';
+    popup.style.right  = 'auto';
+    popup.style.bottom = 'auto';
+    startX = t.clientX;
+    startY = t.clientY;
+    dragging = true;
+    popup.classList.add('dragging');
+  }, {passive: true});
+
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    let newLeft = Math.max(0, Math.min(origLeft + dx, window.innerWidth  - popup.offsetWidth));
+    let newTop  = Math.max(0, Math.min(origTop  + dy, window.innerHeight - popup.offsetHeight));
+    popup.style.left = newLeft + 'px';
+    popup.style.top  = newTop  + 'px';
+  }, {passive: true});
+
+  document.addEventListener('touchend', () => {
+    dragging = false;
+    popup.classList.remove('dragging');
+  });
+})();
+</script>
+</body>
+</html>
